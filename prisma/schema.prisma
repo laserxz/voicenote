@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Note {
+  id         String    @id @default(cuid())
+  title      String?
+  transcript String
+  structured Json
+  noteType   NoteType
+  duration   Int?
+  emailedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([createdAt])
+}
+
+enum NoteType {
+  LIST
+  BRAINSTORM
+  POSTMORTEM
+  MEETING
+  ACTION_ITEMS
+  JOURNAL
+  PROBLEM
+  RAW
+}
