@@ -1,12 +1,13 @@
-import { createClient } from "@deepgram/sdk";
+import { DeepgramClient } from "@deepgram/sdk";
+import type { ListenV1Response } from "@deepgram/sdk";
 
-const deepgram = createClient(process.env.DEEPGRAM_API_KEY!);
+const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY! });
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
   mimeType: string
 ): Promise<{ transcript: string; duration: number }> {
-  const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+  const response = await deepgram.listen.v1.media.transcribeFile(
     audioBuffer,
     {
       model: "nova-3",
@@ -16,11 +17,10 @@ export async function transcribeAudio(
     }
   );
 
-  if (error) throw new Error(`Deepgram error: ${error.message}`);
-
+  const r = response as ListenV1Response;
   const transcript =
-    result?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
-  const duration = Math.round(result?.metadata?.duration ?? 0);
+    r.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "";
+  const duration = Math.round(r.metadata?.duration ?? 0);
 
   return { transcript, duration };
 }
