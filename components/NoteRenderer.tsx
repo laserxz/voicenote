@@ -161,8 +161,8 @@ export function NoteRenderer({ noteType, content }: Props) {
     case "JOURNAL":
       return (
         <div className="space-y-4">
-          {content.mood && (
-            <p className="text-zinc-400 italic">{content.mood as string}</p>
+          {content.mood != null && (
+            <p className="text-zinc-400 italic">{String(content.mood)}</p>
           )}
           <div>
             <h3 className="text-zinc-400 text-xs uppercase tracking-wider mb-2">
