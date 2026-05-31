@@ -21,7 +21,7 @@ export async function uploadAudio(
   await s3.send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET!,
-      Key: key,
+      Key: `voicenote/${key}`,
       Body: buffer,
       ContentType: contentType,
     })
@@ -32,7 +32,7 @@ export async function deleteAudio(key: string): Promise<void> {
   await s3.send(
     new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET!,
-      Key: key,
+      Key: `voicenote/${key}`,
     })
   );
 }

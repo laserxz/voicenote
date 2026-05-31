@@ -21,30 +21,28 @@ All 11 implementation tasks from the plan are committed and deployed. The app is
 - PM2 ecosystem config, Nginx reverse proxy, port 3016
 
 ### Fixed This Session (2026-05-31)
+- Fixed R2 config: uses `memoir-storage` bucket with `voicenote/` prefix (not a separate bucket)
+- Fixed R2 credentials to match memoir's working API keys
 - Fixed `R2_ACCOUNT_ID` in `.env` — was set to a Cloudflare API token instead of the account ID
+- Updated `lib/r2.ts` to prefix all keys with `voicenote/`
 - Added `logs/*.log` to `.gitignore`
+- Rebuilt and restarted PM2
 
 ### Blockers
-1. **R2 bucket `voicenote-audio` does not exist** — must be created in Cloudflare dashboard (R2 > Create Bucket > name: `voicenote-audio`). The R2 endpoint and credentials in `.env` are correct, but the bucket itself hasn't been provisioned. Without this, all recordings fail with `NoSuchBucket`.
-2. **No GitHub remote** — repo needs to be created on GitHub and remote added:
+1. **No GitHub remote** — repo needs to be created on GitHub and remote added:
    ```bash
    cd /var/www/voicenote
    git remote add origin https://github.com/<org>/voicenote.git
    git push -u origin main
    ```
+2. **DNS** — confirm A record exists for `voicenote.zone.net.au` → `178.16.138.108`
+3. **Untested end-to-end** — R2 should now work but the full pipeline (record → transcribe → structure → save → email) hasn't been tested yet
 
 ### Next Steps
-1. Create R2 bucket `voicenote-audio` in Cloudflare dashboard
-2. Create GitHub repo and push
+1. Create GitHub repo and push
+2. Confirm DNS A record for `voicenote.zone.net.au`
 3. Test end-to-end: login → record → transcribe → structure → save → email
-4. Ask Jeff to create DNS A record: `voicenote` → `178.16.138.108` (if not already done)
-5. After verifying, rebuild and restart PM2:
-   ```bash
-   cd /var/www/voicenote
-   npm run build
-   pm2 delete voicenote && pm2 start ecosystem.config.cjs
-   pm2 save
-   ```
+4. If issues, check `pm2 logs voicenote` for errors
 
 ### Key Files
 - Pipeline: `app/api/notes/process/route.ts`
