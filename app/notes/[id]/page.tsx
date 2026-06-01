@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { NoteRenderer } from "@/components/NoteRenderer";
+import { NoteActions } from "@/components/NoteActions";
 import Link from "next/link";
 
 export default async function NotePage({
@@ -64,6 +65,12 @@ export default async function NotePage({
             {note.transcript}
           </p>
         </details>
+
+        <NoteActions
+          noteId={note.id}
+          title={note.title || ""}
+          transcript={note.transcript}
+        />
       </main>
     </div>
   );
