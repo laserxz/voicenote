@@ -213,6 +213,13 @@ Detection rules:
 - PROBLEM: problem definition, analysis, options
 - RAW: fallback for unclassifiable content
 
+Multi-speaker transcripts: lines may be tagged "Speaker 1:", "Speaker 2:"
+etc. — these are anonymous voice labels from diarization. Such transcripts
+are usually MEETING. Work out real names from context (people addressing
+each other) and use them for attendees and action-item owners; where a name
+never surfaces, keep the label (e.g. "Speaker 2"). Attribute decisions and
+action items to the person who took them, not to whoever mentioned them.
+
 Transcript:
 ${transcript}`,
       },
