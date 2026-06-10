@@ -13,3 +13,50 @@ body {
     scrollbar-width: none;
   }
 }
+
+/* Record button */
+@keyframes rec-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes rec-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 40px -4px rgba(239, 68, 68, 0.55),
+      0 24px 48px -12px rgba(0, 0, 0, 0.7);
+  }
+  50% {
+    box-shadow:
+      0 0 72px 0px rgba(239, 68, 68, 0.8),
+      0 24px 48px -12px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@keyframes rec-blink {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes rec-eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
