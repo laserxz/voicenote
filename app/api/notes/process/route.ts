@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { uploadAudio, deleteAudio } from "@/lib/r2";
 import { transcribeAudio } from "@/lib/deepgram";
-import { structureNote } from "@/lib/structure";
+import { structureNote, rawNote } from "@/lib/structure";
 import { prisma } from "@/lib/prisma";
 import { emailNote } from "@/lib/email";
 import { randomUUID } from "crypto";
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const key = `${randomUUID()}.webm`;
 
   try {
-    // 1. Upload to R2
+    // 1. Upload to R2 (kept until the note is safely in the DB)
     await uploadAudio(key, buffer, file.type || "audio/webm");
 
     // 2. Transcribe
@@ -39,13 +39,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Structure with Claude
-    const structured = await structureNote(transcript);
+    // 3. Structure with Claude — never lose a transcript: fall back to RAW
+    let structured;
+    try {
+      structured = await structureNote(transcript);
+    } catch (err) {
+      console.error("[structure] failed, saving as RAW:", err);
+      structured = rawNote(transcript);
+    }
 
-    // 4. Delete from R2
-    await deleteAudio(key);
-
-    // 5. Save to DB
+    // 4. Save to DB
     const note = await prisma.note.create({
       data: {
         title: structured.title,
@@ -55,6 +58,11 @@ export async function POST(req: NextRequest) {
         duration,
       },
     });
+
+    // 5. Note is saved — audio no longer needed
+    await deleteAudio(key).catch((err) =>
+      console.error(`[r2] cleanup failed for voicenote/${key}:`, err)
+    );
 
     // 6. Email (non-blocking — don't fail the request if email fails)
     emailNote(note.id, structured)
@@ -68,8 +76,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ note, structured });
   } catch (err) {
-    await deleteAudio(key).catch(() => {});
-    console.error("[process] error:", err);
+    // Keep the audio in R2 so the recording is recoverable
+    console.error(`[process] error (audio kept at voicenote/${key}):`, err);
     return NextResponse.json(
       { error: "Processing failed" },
       { status: 500 }
