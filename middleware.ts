@@ -8,7 +8,9 @@ export default auth((req) => {
 });
 
 export const config = {
+  // API routes are excluded — they return their own 401s instead of a
+  // redirect to the login page. Manifest and icons must be public for PWA.
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|login).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|login|manifest.webmanifest|icons).*)",
   ],
 };

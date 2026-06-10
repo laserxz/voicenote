@@ -1,61 +1,36 @@
 # VoiceNote — Resume Point
 
-## Last Session: 2026-05-28 (VSCode Claude) + 2026-06-01 (Claude Code)
+## Last Session: 2026-06-09 (Claude Code)
 
-### Status: MVP Working — End-to-End Pipeline Verified
+### Status: MVP deployed + hardening/UX pass complete
 
-All 11 implementation tasks from the plan are committed and deployed. The app is running on PM2 at port 3016, Nginx is configured, and `voicenote.zone.net.au` resolves.
+App is live at `https://voicenote.zone.net.au` (PM2 `voicenote`, port 3016).
+GitHub remote: `https://github.com/laserxz/voicenote` (main is pushed).
 
-### What Was Completed
-- Prisma 7 schema with Note model + NoteType enum, migration applied
-- Auth.js v5 single-user credentials (JWT sessions, middleware protection)
-- Login page (dark theme, `/login`)
-- Deepgram Nova-3 transcription (`lib/deepgram.ts`) — SDK v5 API
-- Claude Sonnet structuring with type detection (`lib/structure.ts`)
-- R2 temporary audio upload/delete (`lib/r2.ts`)
-- Resend email with per-type HTML rendering (`lib/email.ts`)
-- Processing pipeline API (`POST /api/notes/process`)
-- Search API (`GET /api/notes/search?q=&type=&page=`)
-- UI: RecordButton (hold-to-record), NoteCard, NoteRenderer components
-- Pages: recorder (`/`), notes list (`/notes`), note detail (`/notes/[id]`)
-- PM2 ecosystem config, Nginx reverse proxy, port 3016
+### Completed 2026-06-09 — review fixes
+- **Never-lose-a-note pipeline**: structuring failure now falls back to saving a RAW note (transcript preserved); R2 audio deleted only *after* the note is in the DB; on processing failure the audio is kept in R2 and the key is logged for recovery
+- **Structuring via tool use**: `lib/structure.ts` uses a forced `save_note` tool (guaranteed JSON), `max_tokens` 4000 with truncation detection, and `normalizeStructured()` coerces LLM output to the exact shapes renderers expect
+- **Defensive rendering**: `NoteRenderer` and email renderer no longer crash on off-schema content (old notes included)
+- **Email**: all transcript-derived values HTML-escaped
+- **RecordButton**: failed uploads keep the audio blob — tap retries, "Discard recording" resets; tap-to-record *and* hold-to-record both work (600ms threshold); removed accidental-stop on pointer-leave; screen wake lock while recording
+- **Auth**: bcrypt hash comparison (`ADMIN_PASSWORD_HASH` in `.env`, plaintext kept commented for recovery); duplicate `NEXTAUTH_SECRET` removed (`AUTH_SECRET` is canonical)
+- **nginx**: rate limit on `POST /api/auth/callback/credentials` (10r/m, burst 5) via `conf.d/voicenote-ratelimit.conf`
+- **Middleware**: `/api/*` excluded from redirect matcher (API returns clean 401s); manifest/icons public
+- **Notes list**: "Load more" pagination (was capped at 20 with no way to page)
+- **PWA**: `app/manifest.ts`, mic icons (`public/icons/`), apple-touch-icon, theme color — installable on iOS/Android
 
-### Fixed This Session (2026-06-01)
-- Fixed R2 config: uses `memoir-storage` bucket with `voicenote/` prefix (not a separate bucket)
-- Fixed R2 credentials to match memoir's working API keys
-- Fixed `R2_ACCOUNT_ID` in `.env` — was set to a Cloudflare API token instead of the account ID
-- Updated `lib/r2.ts` to prefix all keys with `voicenote/`
-- Fixed Anthropic SDK auth: system env had empty `ANTHROPIC_API_KEY` (set by Claude Code) shadowing `.env` value. Fixed by loading `.env` via dotenv in `ecosystem.config.cjs` so PM2 injects vars explicitly
-- Added `logs/*.log` to `.gitignore`
-- Rebuilt and restarted PM2
-- **Verified working**: record → transcribe → structure → save → email pipeline confirmed
-
-### Remaining
-1. **No GitHub remote** — repo needs to be created on GitHub and remote added:
-   ```bash
-   cd /var/www/voicenote
-   git remote add origin https://github.com/<org>/voicenote.git
-   git push -u origin main
-   ```
-2. Check email delivery (Resend) is working
-3. Consider UX improvements (tap-to-record vs hold-to-record, loading states, etc.)
-
-### Next Steps
-1. Create GitHub repo and push
-2. Confirm DNS A record for `voicenote.zone.net.au`
-3. Test end-to-end: login → record → transcribe → structure → save → email
-4. If issues, check `pm2 logs voicenote` for errors
+### Known gaps / ideas
+- No service worker (installable, but no offline support)
+- Search is Postgres `ILIKE`; switch to full-text search if the notes table grows large
+- Failed-processing audio recovery is manual (key is in `pm2 logs voicenote`, object under `voicenote/` prefix in the `memoir-storage` bucket)
 
 ### Key Files
 - Pipeline: `app/api/notes/process/route.ts`
 - Auth: `lib/auth.ts`, `middleware.ts`
 - Transcription: `lib/deepgram.ts`
-- Structuring: `lib/structure.ts`
+- Structuring + normalization: `lib/structure.ts`
 - Storage: `lib/r2.ts`
 - Email: `lib/email.ts`
-- DB: `lib/prisma.ts`, `prisma/schema.prisma`
-- UI: `components/RecordButton.tsx`, `components/NoteCard.tsx`, `components/NoteRenderer.tsx`
+- UI: `components/RecordButton.tsx`, `components/NoteCard.tsx`, `components/NoteRenderer.tsx`, `components/NoteActions.tsx`
 - Pages: `app/page.tsx` (recorder), `app/notes/page.tsx` (list), `app/notes/[id]/page.tsx` (detail)
-- Config: `ecosystem.config.cjs`, `.env`
-- Plan: `docs/superpowers/plans/2026-05-28-voicenote-v1.md`
-- Spec: `docs/superpowers/specs/2026-05-28-voicenote-design.md`
+- Config: `ecosystem.config.cjs`, `.env`, `app/manifest.ts`
