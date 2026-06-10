@@ -15,6 +15,7 @@ export type NoteType =
 export interface StructuredNote {
   type: NoteType;
   title: string;
+  summary: string;
   content: Record<string, unknown>;
 }
 
@@ -49,6 +50,7 @@ export function rawNote(transcript: string): StructuredNote {
   return {
     type: "RAW",
     title: fallbackTitle(transcript),
+    summary: "",
     content: { transcript },
   };
 }
@@ -70,10 +72,24 @@ function objArray<T>(v: unknown, map: (o: Record<string, unknown>) => T): T[] {
 
 // Coerce LLM output into the exact shape each renderer expects, so a
 // slightly-off response can never produce a note that crashes on display.
+// The summary is stored inside `content` too, so it persists in the
+// existing `structured` JSON column without a schema change.
 export function normalizeStructured(
   raw: unknown,
   transcript: string
 ): StructuredNote {
+  const summary =
+    raw != null && typeof raw === "object"
+      ? str((raw as Record<string, unknown>).summary).trim()
+      : "";
+  const base = normalizeBase(raw, transcript);
+  return { ...base, summary, content: { ...base.content, summary } };
+}
+
+function normalizeBase(
+  raw: unknown,
+  transcript: string
+): Omit<StructuredNote, "summary"> {
   if (raw == null || typeof raw !== "object") return rawNote(transcript);
   const r = raw as Record<string, unknown>;
   const type = NOTE_TYPES.includes(r.type as NoteType)
@@ -170,7 +186,7 @@ export async function structureNote(
 ): Promise<StructuredNote> {
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 4000,
+    max_tokens: 8000,
     tools: [
       {
         name: "save_note",
@@ -183,12 +199,17 @@ export async function structureNote(
               type: "string",
               description: "Short descriptive title (max 8 words)",
             },
+            summary: {
+              type: "string",
+              description:
+                "Short paragraph (2-4 sentences) summarising the note at a high level",
+            },
             content: {
               type: "object",
               description: "Content matching the schema for the chosen type",
             },
           },
-          required: ["type", "title", "content"],
+          required: ["type", "title", "summary", "content"],
         },
       },
     ],
@@ -197,6 +218,14 @@ export async function structureNote(
       {
         role: "user",
         content: `You are a voice note organiser. Given a raw transcript, detect the note type and save a structured note.
+
+The note has two layers:
+1. "summary" — a short paragraph (2-4 sentences) giving the gist at a glance.
+2. "content" — a COMPREHENSIVE structured version of the transcript. Do not
+   compress or merge points: every distinct point, idea, task, decision, or
+   aside raised in the transcript must appear somewhere in the content, even
+   minor ones. Prefer more bullets over fewer. Someone reading only the
+   structured content should not miss anything that was said.
 
 Note types and their content schemas:
 ${Object.entries(TYPE_SCHEMAS)

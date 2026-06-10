@@ -22,6 +22,20 @@ function objArray(v: unknown): Record<string, unknown>[] {
 }
 
 export function NoteRenderer({ noteType, content }: Props) {
+  const summary = str(content.summary);
+  return (
+    <div className="space-y-5">
+      {summary && (
+        <p className="text-zinc-300 leading-relaxed border-l-2 border-zinc-700 pl-3">
+          {summary}
+        </p>
+      )}
+      <NoteBody noteType={noteType} content={content} />
+    </div>
+  );
+}
+
+function NoteBody({ noteType, content }: Props) {
   switch (noteType) {
     case "LIST":
       return (

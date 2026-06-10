@@ -117,6 +117,7 @@ export async function emailNote(
         <h2 style="margin-bottom: 4px;">${esc(note.title)}</h2>
         <p style="color: #888; font-size: 12px; margin-top: 0;">${esc(note.type)}</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;"/>
+        ${note.summary ? `<p style="border-left: 3px solid #ddd; padding-left: 12px; color: #444;">${esc(note.summary)}</p>` : ""}
         ${renderContent(note)}
         <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;"/>
         <p style="color: #aaa; font-size: 12px;">
