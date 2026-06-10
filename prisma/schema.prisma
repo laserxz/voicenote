@@ -7,8 +7,22 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  displayName         String
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  createdAt           DateTime  @default(now())
+
+  notes Note[]
+}
+
 model Note {
   id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title      String?
   transcript String
   structured Json
@@ -19,6 +33,7 @@ model Note {
   updatedAt  DateTime  @updatedAt
 
   @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 enum NoteType {

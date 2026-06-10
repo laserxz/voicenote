@@ -4,7 +4,7 @@ Voice recorder app — hold to record, release to stop. Audio is transcribed (De
 
 ## Stack
 - Next.js 16 (App Router, no src/ dir), TypeScript, Tailwind CSS v4
-- Auth.js v5 (next-auth beta), JWT sessions, credentials provider (single user)
+- Auth.js v5 (next-auth beta), JWT sessions, multi-user email+password (bcrypt hashes in User table, signup + password reset via Resend)
 - Prisma 7 + PrismaPg adapter, PostgreSQL 16
 - Deepgram Nova-3, Anthropic Claude Sonnet 4.6, Resend, Cloudflare R2
 

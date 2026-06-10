@@ -103,13 +103,14 @@ function renderContent(note: StructuredNote): string {
 
 export async function emailNote(
   noteId: string,
-  note: StructuredNote
+  note: StructuredNote,
+  to: string
 ): Promise<void> {
   const appUrl = process.env.NEXTAUTH_URL;
 
   await resend.emails.send({
     from: process.env.EMAIL_FROM!,
-    to: process.env.EMAIL_TO_DEFAULT!,
+    to,
     subject: `[VoiceNote] ${note.type}: ${note.title}`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
@@ -121,6 +122,25 @@ export async function emailNote(
         <p style="color: #aaa; font-size: 12px;">
           <a href="${appUrl}/notes/${noteId}" style="color: #666;">View in VoiceNote</a>
         </p>
+      </div>
+    `,
+  });
+}
+
+export async function sendPasswordResetEmail(
+  to: string,
+  resetUrl: string
+): Promise<void> {
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM!,
+    to,
+    subject: "[VoiceNote] Reset your password",
+    html: `
+      <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+        <h2>Reset your VoiceNote password</h2>
+        <p>Someone (hopefully you) requested a password reset for this email address.</p>
+        <p><a href="${resetUrl}" style="display:inline-block;background:#18181b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Choose a new password</a></p>
+        <p style="color:#888;font-size:13px;">This link expires in 1 hour. If you didn't request it, you can ignore this email — your password is unchanged.</p>
       </div>
     `,
   });

@@ -5,12 +5,27 @@ import { transcribeAudio } from "@/lib/deepgram";
 import { structureNote, rawNote } from "@/lib/structure";
 import { prisma } from "@/lib/prisma";
 import { emailNote } from "@/lib/email";
+import { checkRateLimit } from "@/lib/validation";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Transcription + structuring cost real money per call — cap per user
+  const { allowed } = checkRateLimit(
+    "process",
+    session.user.id,
+    30,
+    60 * 60 * 1000
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Rate limit reached — try again in a while" },
+      { status: 429 }
+    );
   }
 
   const formData = await req.formData();
@@ -51,6 +66,7 @@ export async function POST(req: NextRequest) {
     // 4. Save to DB
     const note = await prisma.note.create({
       data: {
+        userId: session.user.id,
         title: structured.title,
         transcript,
         structured: structured.content as object,
@@ -64,8 +80,8 @@ export async function POST(req: NextRequest) {
       console.error(`[r2] cleanup failed for voicenote/${key}:`, err)
     );
 
-    // 6. Email (non-blocking — don't fail the request if email fails)
-    emailNote(note.id, structured)
+    // 6. Email the note to its owner (non-blocking)
+    emailNote(note.id, structured, session.user.email)
       .then(() =>
         prisma.note.update({
           where: { id: note.id },

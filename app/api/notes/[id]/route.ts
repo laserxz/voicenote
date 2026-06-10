@@ -13,7 +13,9 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const note = await prisma.note.findUnique({ where: { id } });
+  const note = await prisma.note.findFirst({
+    where: { id, userId: session.user.id },
+  });
   if (!note) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -32,7 +34,9 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const note = await prisma.note.findUnique({ where: { id } });
+  const note = await prisma.note.findFirst({
+    where: { id, userId: session.user.id },
+  });
   if (!note) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

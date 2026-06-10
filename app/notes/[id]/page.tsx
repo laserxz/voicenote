@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NoteRenderer } from "@/components/NoteRenderer";
 import { NoteActions } from "@/components/NoteActions";
@@ -9,8 +10,13 @@ export default async function NotePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
   const { id } = await params;
-  const note = await prisma.note.findUnique({ where: { id } });
+  const note = await prisma.note.findFirst({
+    where: { id, userId: session.user.id },
+  });
   if (!note) notFound();
 
   const fmt = new Intl.DateTimeFormat("en-AU", {

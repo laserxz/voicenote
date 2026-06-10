@@ -1,8 +1,26 @@
 # VoiceNote — Resume Point
 
-## Last Session: 2026-06-09 (Claude Code)
+## Last Session: 2026-06-10 (Claude Code)
 
-### Status: MVP deployed + hardening/UX pass complete
+### Status: Multi-user — open signup with email + password
+
+Auth follows the memoir pattern: `User` table with bcrypt `passwordHash`,
+Auth.js v5 credentials provider checking the DB, rate-limited `/api/signup`
+(5/IP/hour, anti-enumeration), forgot/reset password with single-use 1-hour
+tokens emailed via Resend. Notes are scoped per user (`Note.userId`,
+cascade delete); note emails go to the owner's address. Processing is
+rate-limited to 30 notes/user/hour (Deepgram + Claude cost real money).
+Middleware reads the JWT directly via `getToken` (memoir pattern) because
+`lib/auth.ts` now imports Prisma, which can't run on the Edge runtime —
+note the `__Secure-authjs.session-token` cookie-name gotcha.
+
+Jeff's account was migrated from the old env credentials (same password,
+hash moved from `.env` to the DB — which also retires the
+dotenv-`$`-mangling workaround). `ADMIN_*` and `EMAIL_TO_DEFAULT` env vars
+are gone. DB backup from before the migration:
+`/root/backups/voicenote-pre-multiuser-20260610.sql`.
+
+### Previous session: 2026-06-09 — hardening/UX pass
 
 App is live at `https://voicenote.zone.net.au` (PM2 `voicenote`, port 3016).
 GitHub remote: `https://github.com/laserxz/voicenote` (main is pushed).

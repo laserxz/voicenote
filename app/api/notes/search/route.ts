@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   const limit = 20;
 
   const where = {
+    userId: session.user.id,
     ...(type && Object.values(NoteType).includes(type as NoteType)
       ? { noteType: type as NoteType }
       : {}),
