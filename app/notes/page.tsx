@@ -21,24 +21,41 @@ export default function NotesPage() {
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState("");
   const [type, setType] = useState("");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchNotes = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (type) params.set("type", type);
-    const res = await fetch(`/api/notes/search?${params}`);
-    const data = await res.json();
-    setNotes(data.notes ?? []);
-    setTotal(data.total ?? 0);
-    setLoading(false);
-  }, [q, type]);
+  const fetchNotes = useCallback(
+    async (pageNum: number, append: boolean) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (type) params.set("type", type);
+      params.set("page", String(pageNum));
+      const res = await fetch(`/api/notes/search?${params}`);
+      const data = await res.json();
+      setNotes((prev) =>
+        append ? [...prev, ...(data.notes ?? [])] : (data.notes ?? [])
+      );
+      setTotal(data.total ?? 0);
+      setLoading(false);
+      setLoadingMore(false);
+    },
+    [q, type]
+  );
 
   useEffect(() => {
-    const t = setTimeout(fetchNotes, 300);
+    setPage(1);
+    const t = setTimeout(() => fetchNotes(1, false), 300);
     return () => clearTimeout(t);
   }, [fetchNotes]);
+
+  const loadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchNotes(next, true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col max-w-lg mx-auto">
@@ -90,7 +107,22 @@ export default function NotesPage() {
         ) : notes.length === 0 ? (
           <p className="text-zinc-600 text-sm text-center py-8">No notes found.</p>
         ) : (
-          notes.map((note) => <NoteCard key={note.id} {...note} />)
+          <>
+            {notes.map((note) => (
+              <NoteCard key={note.id} {...note} />
+            ))}
+            {notes.length < total && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="w-full py-3 text-sm text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {loadingMore
+                  ? "Loading…"
+                  : `Load more (${notes.length} of ${total})`}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
